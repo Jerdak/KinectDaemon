@@ -1,15 +1,33 @@
-﻿/* Tcp Server
- * ----------
- * 
- * This is a simple TCP broadcast server* for pumping out Kinect skeleton data.
- * Any client that connects to this server on the correct port will start receiving serialized
- * skeletal data without having to make any requests.
- * 
- * 
- * *Modified from: http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server
- * 
- */
+﻿/**	Tcp Server
+    Description:
+        TCP Server sends serialized packets of joint data to any client connected to the server.
+        Originally the server just pushed data to whomever connected, the BroadcastMessage code
+        you might have noticed below.  I'd forgotten you can't flush the TCP stack so the code
+        was modified to require a "request for send" for any conencted client.
+        
+        Currently any message from a client (except for disconnect) is considered a request to send.
+  
+	@author Jeremy Carson and unknown author found at the Original Source link below.
+	@website http://www.seethroughskin.com/blog/?p=1159
+    @originalsource http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server
+    
+*/
 
+/* 
+ * This program is free software; you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along 
+ * with this program; if not, write to the Free Software Foundation, Inc., 
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
 using System;
 using System.Text;
 using System.Net.Sockets;

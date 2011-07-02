@@ -49,8 +49,6 @@
   <ItemGroup>
     <Compile Include="Client.cs" />
     <Compile Include="Kinect.cs" />
-    <Compile Include="KinectPacket.cs" />
-    <Compile Include="Point.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationUtils.cs" />

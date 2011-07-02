@@ -1,14 +1,44 @@
-﻿/////////////////////////////////////////////////////////////////////////
-//
-// This module contains code to do Kinect NUI initialization and
-// processing and also to display NUI streams on screen.
-//
-// Copyright © Microsoft Corporation.  All rights reserved.  
-// This code is licensed under the terms of the 
+﻿/**	Kinect Wrapper
+	Description: Kinect.cs wraps the Microsoft KinectSDK.  Currently only joint data is saved.
+  
+	@author Jeremy Carson
+	@website http://www.seethroughskin.com/blog/?p=1159
+
+    License Notes:
+    KinectSDK and example code are licensed by Microsoft under a limited non-commercial license.
+    Rather than isolating KinectSDK code in another file I include both my additions to the code
+    and the Microsoft example code in a single file.
+ 
+    Plainly spoken, code I've written falls under GPL.  If you wish to release an entire app
+    under GPL you'll need to remove the Kinect crap.  I know, annoying right.
+    
+*/
+
+/////////////////////////////////////////////////////////////////////////
+// Code pertaining directly to the Kinect SDK is licensed under the Microsoft Lincense
+// agreement below.
 // Microsoft Kinect for Windows SDK (Beta) from Microsoft Research 
 // License Agreement: http://research.microsoft.com/KinectSDK-ToU
 //
 /////////////////////////////////////////////////////////////////////////
+
+/* 
+ * Code pertaining to anything other than KinectSDK falls under GPL; 
+ * you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along 
+ * with this program; if not, write to the Free Software Foundation, Inc., 
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -176,64 +206,16 @@ namespace KinectDaemon
                 frameRate.Text = frameDiff.ToString() + " fps";
             }*/
         }
-        /*
-        private Point getDisplayPosition(Joint joint)
-        {
-            float depthX, depthY;
-      
-            nui.SkeletonEngine.SkeletonToDepthImage(joint.Position, out depthX, out depthY);
-            depthX = Math.Max(0, Math.Min(depthX * 320, 320));  //convert to 320, 240 space
-            depthY = Math.Max(0, Math.Min(depthY * 240, 240));  //convert to 320, 240 space
-            int colorX, colorY;
-            ImageViewArea iv = new ImageViewArea();
-            // only ImageResolution.Resolution640x480 is supported at this point
-            nui.NuiCamera.GetColorPixelCoordinatesFromDepthPixel(ImageResolution.Resolution640x480, iv, (int)depthX, (int)depthY, (short)0, out colorX, out colorY);
 
-            // map back to skeleton.Width & skeleton.Height
-            return new Point((int)(skeleton.Width * colorX / 640.0), (int)(skeleton.Height * colorY / 480));
-        }
-
-        Polyline getBodySegment(Microsoft.Research.Kinect.Nui.JointsCollection joints, Brush brush, params JointID[] ids)
-        {
-            PointCollection points = new PointCollection(ids.Length);
-            for (int i = 0; i < ids.Length; ++i)
-            {
-                points.Add(getDisplayPosition(joints[ids[i]]));
-            }
-
-            Polyline polyline = new Polyline();
-            polyline.Points = points;
-            polyline.Stroke = brush;
-            polyline.StrokeThickness = 5;
-            return polyline;
-        }
-        */
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
             SkeletonFrame skeletonFrame = e.SkeletonFrame;
             int iSkeleton = 0;
-          /*  Brush[] brushes = new Brush[6];
-            brushes[0] = new SolidColorBrush(Color.FromRgb(255, 0, 0));
-            brushes[1] = new SolidColorBrush(Color.FromRgb(0, 255, 0));
-            brushes[2] = new SolidColorBrush(Color.FromRgb(64, 255, 255));
-            brushes[3] = new SolidColorBrush(Color.FromRgb(255, 255, 64));
-            brushes[4] = new SolidColorBrush(Color.FromRgb(255, 64, 255));
-            brushes[5] = new SolidColorBrush(Color.FromRgb(128, 128, 255));
-            */
      
             foreach (SkeletonData data in skeletonFrame.Skeletons)
             {
                 if (SkeletonTrackingState.Tracked == data.TrackingState)
                 {
-                    // Draw bones
-                    /*Brush brush = brushes[iSkeleton % brushes.Length];
-                     skeleton.Children.Add(getBodySegment(data.Joints, brush, JointID.HipCenter, JointID.Spine, JointID.ShoulderCenter, JointID.Head));
-                     skeleton.Children.Add(getBodySegment(data.Joints, brush, JointID.ShoulderCenter, JointID.ShoulderLeft, JointID.ElbowLeft, JointID.WristLeft, JointID.HandLeft));
-                     skeleton.Children.Add(getBodySegment(data.Joints, brush, JointID.ShoulderCenter, JointID.ShoulderRight, JointID.ElbowRight, JointID.WristRight, JointID.HandRight));
-                     skeleton.Children.Add(getBodySegment(data.Joints, brush, JointID.HipCenter, JointID.HipLeft, JointID.KneeLeft, JointID.AnkleLeft, JointID.FootLeft));
-                     skeleton.Children.Add(getBodySegment(data.Joints, brush, JointID.HipCenter, JointID.HipRight, JointID.KneeRight, JointID.AnkleRight, JointID.FootRight));
-                     */
-
                     lock (Joints)
                     {
                         //drop joint data in to outward facing lookup table
@@ -241,17 +223,6 @@ namespace KinectDaemon
                         {
                             //store joint position here.
                             Joints[joint.ID.ToString()] = new KinectPoint((int)(joint.Position.X * 1000), (int)(joint.Position.Y * 1000), (int)(joint.Position.Z * 1000));
-
-                            /*
-                              Point jointPos = getDisplayPosition(joint);
-                              Line jointLine = new Line();
-                              jointLine.X1 = jointPos.X - 3;
-                              jointLine.X2 = jointLine.X1 + 6;
-                              jointLine.Y1 = jointLine.Y2 = jointPos.Y;
-                              jointLine.Stroke = jointColors[joint.ID];
-                              jointLine.StrokeThickness = 6;
-                              skeleton.Children.Add(jointLine);*/
-
                         }
                     }
                     IsTrackingSkeleton = true;

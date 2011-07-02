@@ -1,4 +1,36 @@
-﻿using System;
+﻿/** Main entrance to our "daemon"
+    Description:
+        KinectDaemon can be run as a server or a test client.  Flags are listed below.
+    
+    README:
+        Unity3D, at the time of this writing, does not support .dlls compiled against .NET 4.0
+        Well technically Mono doesn't but whatever.  Any data you serialize over the TCP channel
+        must be stored in a stand alone .dll that is compiled against .NET 3.5
+  
+	@author Jeremy Carson
+	@website http://www.seethroughskin.com/blog/?p=1159
+ 
+    @requirements
+        Microsoft.Research.Kinect.dll - KinectSDK
+        KinectSerializables - Another of my projects, Unity3D had trouble serializing w/ variables compiled against .net 4.0 
+*/
+
+/* 
+ * This program is free software; you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation; either version 2 of the License, or 
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along 
+ * with this program; if not, write to the Free Software Foundation, Inc., 
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -99,61 +131,38 @@ namespace KinectDaemon
                         {
                             cki = Console.ReadKey();
                             Console.WriteLine("You pressed: " + cki.Key.ToString());
-                      
+
                         } while (cki.Key != ConsoleKey.Q);
                         server.ShutDown();
+                    }
                     break;
                 case 'c':
                 case 'C':
-                    try
                     {
-                        Client client = new Client();
-                        client.Connect();
-                        ConsoleKeyInfo cki;
-                        Console.WriteLine("Client running, press 'Q' to quit");
-                        do
+                        try
                         {
-                            cki = Console.ReadKey();
-
-                        } while (cki.Key != ConsoleKey.Q);
-                        client.Disconnect();
-                      /*  TcpClient client = new TcpClient();
-                        IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 3000);
-                        client.Connect(serverEndPoint);
-                        NetworkStream clientStream = client.GetStream();
-
-                        //Thread clientThread = new Thread(new ThreadStart(HandleServerComm));
-                        //clientThread.Start(client);
-                        do {
-                            Console.Write("Send message: ");
-
-                            string buffer = Console.ReadLine();
-                            ASCIIEncoding encoder = new ASCIIEncoding();
-                            byte[] bbuffer = encoder.GetBytes(buffer);
-
-                            if(buffer.CompareTo("q")==0)break;
-
-                            clientStream.Write(bbuffer, 0, bbuffer.Length);
-                            clientStream.Flush();
-
-                            while (clientStream.DataAvailable)
+                            Client client = new Client();
+                            client.Connect();
+                            do
                             {
-                                byte[] message = new byte[4096];
-                                int bytesRead = clientStream.Read(message, 0, 4096);
-                                KinectPacket packet = SerializationUtils.DeserializeFromByteArray<KinectPacket>(message);
-                                foreach (KeyValuePair<string,Point> kvp in packet.Messages)
-                                    Console.WriteLine(kvp.Key + " " + kvp.Value.ToString());
-                                   // Console.WriteLine("Server Receipt:" + encoder.GetString(message, 0, bytesRead));
-                            }
-                        } while(true);
-                        client.Close();*/
+                                Console.Write("Send message: ");
+                                string buffer = Console.ReadLine();
+                                if (buffer.CompareTo("q") == 0) break;
+                                client.SendMessageToServer(buffer);
+                            } while (true);
+
+                            client.Disconnect();
+           
+                        }
+                        catch (SystemException ex)
+                        {
+                            Console.WriteLine("No connection could be established: " + ex.Message);
+                           
+
+                        }
+                        break;
                     }
-                    catch(SystemException ex)
-                    {
-                        Console.WriteLine("No connection could be established: "+ex.Message);
-                    }
-                    break;
-            }
+               }
         }
         private static void HandleServerComm()
         {
