@@ -133,7 +133,7 @@ namespace KinectDaemon
             {
             }
         }
-        ///Broadcast thread.
+        ///Broadcast thread (deprecated, clients must now request data).
         private void Broadcast()
         {
             while (!_isShuttingDown)
@@ -193,7 +193,6 @@ namespace KinectDaemon
                     clientThread.Start(client);
 
                     AddBroadcastClient(client);
-
                 }
             }
             catch
@@ -232,28 +231,6 @@ namespace KinectDaemon
                     break;
                 }
                 SendPacketTo(clientStream);
-                /*
-                //message has successfully been received
-                ASCIIEncoding encoder = new ASCIIEncoding();
-                Console.WriteLine(encoder.GetString(message, 0, bytesRead));
-
-                KinectPacket packet = new KinectPacket();
-                //return receipt
-                lock (_kinect.Joints)
-                {
-
-                    foreach (KeyValuePair<string, KinectPoint> kvp in _kinect.Joints)
-                    {
-                        //Console.WriteLine(kvp.Key + " " + kvp.Value.ToString());
-                        packet.Messages.Add(kvp.Key, kvp.Value);
-                    }
-                }
-                byte[] data = SerializationUtils.SerializeToByteArray(packet);
-               
-                // byte[] buffer = encoder.GetBytes("Hello Client!");
-
-                clientStream.Write(data, 0, data.Length);
-                clientStream.Flush();*/
             }
             
             tcpClient.Close();
