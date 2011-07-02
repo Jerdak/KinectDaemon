@@ -1,19 +1,19 @@
-﻿/*using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 [Serializable]
-public class Point
+public class KinectPoint
 {
     int X { get; set; }
     int Y { get; set; }
     int Z { get; set; }
 
-    public Point()
+    public KinectPoint()
     {
     }
-    public Point(int x, int y, int z)
+    public KinectPoint(int x, int y, int z)
     {
         X = x;
         Y = y;
@@ -23,4 +23,4 @@ public class Point
     {
         return X.ToString() + " " + Y.ToString() + " " + Z.ToString();
     }
-};*/
+};
