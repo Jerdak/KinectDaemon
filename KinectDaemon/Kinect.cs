@@ -221,6 +221,7 @@ namespace KinectDaemon
                         //drop joint data in to outward facing lookup table
                         foreach (Joint joint in data.Joints)
                         {
+                            
                             //store joint position here.
                             Joints[joint.ID.ToString()] = new KinectPoint((int)(joint.Position.X * 1000), (int)(joint.Position.Y * 1000), (int)(joint.Position.Z * 1000));
                         }
