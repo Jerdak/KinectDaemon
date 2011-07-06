@@ -219,7 +219,8 @@ namespace KinectDaemon
                 }
                 catch
                 {
-                    //a socket error has occured
+                    Console.WriteLine("Client Disconnected Poorly: " + tcpClient.Client.RemoteEndPoint.ToString());
+                    RemoveBroadcastClient(tcpClient);
                     break;
                 }
 
