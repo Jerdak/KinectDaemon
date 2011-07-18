@@ -10,6 +10,11 @@ public class KinectPoint
     int Y { get; set; }
     int Z { get; set; }
 
+    ///Screen position, X
+    int WX { get; set; }
+
+    ///Screen position, Y
+    int WY { get; set; }
     public KinectPoint()
     {
     }
