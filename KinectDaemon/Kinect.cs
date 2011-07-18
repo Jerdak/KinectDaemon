@@ -1,17 +1,11 @@
-﻿/**	Kinect Wrapper
-	Description: Kinect.cs wraps the Microsoft KinectSDK.  Currently only joint data is saved.
-  
-	@author Jeremy Carson
-	@website http://www.seethroughskin.com/blog/?p=1159
-
+﻿/*
     License Notes:
     KinectSDK and example code are licensed by Microsoft under a limited non-commercial license.
     Rather than isolating KinectSDK code in another file I include both my additions to the code
     and the Microsoft example code in a single file.
  
-    Plainly spoken, code I've written falls under GPL.  If you wish to release an entire app
-    under GPL you'll need to remove the Kinect crap.  I know, annoying right.
-    
+    So basically the code I've written falls under GPL.  If you wish to release an entire app
+    under GPL you'll need to remove the Kinect crap. 
 */
 
 /////////////////////////////////////////////////////////////////////////
@@ -48,15 +42,54 @@ using Microsoft.Research.Kinect.Nui;
 namespace KinectDaemon
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Microsoft KinectSDK wrapper
     /// </summary>
+    /// <author>Jeremy Carson</author>
+    /// <original_source>http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server</original_source>
+    /// <related_source>http://www.seethroughskin.com/blog/?p=1159</related_source>
     public class Kinect
     {
+        ///Joint data hashed on joint name (string)
         public Dictionary<string, KinectPoint> Joints = new Dictionary<string, KinectPoint>();
+        
+        ///Stream recorder.
+        public Recorder Record { get; set; }
+
+        ///Is Skeleton being tracked?
+        private bool _isTrackingSkeleton = false;
+        
+        ///KinectSDK NUI Runtime 
+        Runtime _nuiRunTime;
+
+        ///Total number of depth frames
+        int _totalFrames = 0;
+
+        ///Last total number of depth frames
+        int _lastFrames = 0;
+
+        ///Last time in frame.
+        DateTime _lastTime = DateTime.MaxValue;
+
+        // We want to control how depth data gets converted into false-color data
+        // for more intuitive visualization, so we keep 32-bit color frame buffer versions of
+        // these, to be updated whenever we receive and process a 16-bit frame.
+        const int RED_IDX = 2;
+        const int GREEN_IDX = 1;
+        const int BLUE_IDX = 0;
+        byte[] depthFrame32 = new byte[320 * 240 * 4];
+
 
         public Kinect()
         {
+            Record = new Recorder();
         }
+
+        ///Be certain not to leave a dangling file stream or recorder data will be lost.
+        ~Kinect()
+        {
+            Record.StopRecording();
+        }
+
         public bool IsTrackingSkeleton
         {
             get
@@ -78,29 +111,14 @@ namespace KinectDaemon
             }
 
         }
-        private bool _isTrackingSkeleton = false;
-        Runtime nui;
-        int totalFrames = 0;
-        int lastFrames = 0;
-        DateTime lastTime = DateTime.MaxValue;
-
-        // We want to control how depth data gets converted into false-color data
-        // for more intuitive visualization, so we keep 32-bit color frame buffer versions of
-        // these, to be updated whenever we receive and process a 16-bit frame.
-        const int RED_IDX = 2;
-        const int GREEN_IDX = 1;
-        const int BLUE_IDX = 0;
-        byte[] depthFrame32 = new byte[320 * 240 * 4];
-
-
-
+      
         public void Start()
         {
-            nui = new Runtime();
+            _nuiRunTime = new Runtime();
 
             try
             {
-                nui.Initialize(RuntimeOptions.UseDepthAndPlayerIndex | RuntimeOptions.UseSkeletalTracking | RuntimeOptions.UseColor);
+                _nuiRunTime.Initialize(RuntimeOptions.UseDepthAndPlayerIndex | RuntimeOptions.UseSkeletalTracking | RuntimeOptions.UseColor);
             }
             catch (InvalidOperationException)
             {
@@ -111,8 +129,8 @@ namespace KinectDaemon
 
             try
             {
-                nui.VideoStream.Open(ImageStreamType.Video, 2, ImageResolution.Resolution640x480, ImageType.Color);
-                nui.DepthStream.Open(ImageStreamType.Depth, 2, ImageResolution.Resolution320x240, ImageType.DepthAndPlayerIndex);
+                _nuiRunTime.VideoStream.Open(ImageStreamType.Video, 2, ImageResolution.Resolution640x480, ImageType.Color);
+                _nuiRunTime.DepthStream.Open(ImageStreamType.Depth, 2, ImageResolution.Resolution320x240, ImageType.DepthAndPlayerIndex);
             }
             catch (InvalidOperationException)
             {
@@ -120,11 +138,13 @@ namespace KinectDaemon
                 return;
             }
 
-            lastTime = DateTime.Now;
+            _lastTime = DateTime.Now;
 
-            nui.DepthFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_DepthFrameReady);
-            nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
-            nui.VideoFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_ColorFrameReady);
+            _nuiRunTime.DepthFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_DepthFrameReady);
+            _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
+            _nuiRunTime.VideoFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_ColorFrameReady);
+
+            _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(Record.nui_SkeletonFrameReady);
         }
 
         // Converts a 16-bit grayscale depth frame which includes player indexes into a 32-bit frame
@@ -195,14 +215,14 @@ namespace KinectDaemon
             depth.Source = BitmapSource.Create(
                 Image.Width, Image.Height, 96, 96, PixelFormats.Bgr32, null, convertedDepthFrame, Image.Width * 4);
 
-            ++totalFrames;
+            ++_totalFrames;
 
             DateTime cur = DateTime.Now;
-            if (cur.Subtract(lastTime) > TimeSpan.FromSeconds(1))
+            if (cur.Subtract(_lastTime) > TimeSpan.FromSeconds(1))
             {
-                int frameDiff = totalFrames - lastFrames;
-                lastFrames = totalFrames;
-                lastTime = cur;
+                int frameDiff = _totalFrames - _lastFrames;
+                _lastFrames = _totalFrames;
+                _lastTime = cur;
                 frameRate.Text = frameDiff.ToString() + " fps";
             }*/
         }
@@ -243,7 +263,7 @@ namespace KinectDaemon
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            nui.Uninitialize();
+            _nuiRunTime.Uninitialize();
             Environment.Exit(0);
         }
 
