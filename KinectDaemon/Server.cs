@@ -1,19 +1,4 @@
-﻿/**	Tcp Server
-    Description:
-        TCP Server sends serialized packets of joint data to any client connected to the server.
-        Originally the server just pushed data to whomever connected, the BroadcastMessage code
-        you might have noticed below.  I'd forgotten you can't flush the TCP stack so the code
-        was modified to require a "request for send" for any conencted client.
-        
-        Currently any message from a client (except for disconnect) is considered a request to send.
-  
-	@author Jeremy Carson and unknown author found at the Original Source link below.
-	@website http://www.seethroughskin.com/blog/?p=1159
-    @originalsource http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server
-    
-*/
-
-/* 
+﻿/* 
  * This program is free software; you can redistribute it and/or modify 
  * it under the terms of the GNU General Public License as published by 
  * the Free Software Foundation; either version 2 of the License, or 
@@ -28,6 +13,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc., 
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
+
 using System;
 using System.Text;
 using System.Net.Sockets;
@@ -37,23 +23,25 @@ using System.Collections.Generic;
 
 namespace KinectDaemon
 {
-
+    /// <summary>
+    /// The Kinect TCP Server sends serialized packets of joint data to any connected client at the client's request.
+    /// Right now, requests are any packets of length() > 0.  0 length packets denote a closed client stream.
+    /// </summary>
+    /// <author>Jeremy Carson & Unknown web author</author>
+    /// <original_source>http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server</original_source>
+    /// <related_source>http://www.seethroughskin.com/blog/?p=1159</related_source>
     class Server
     {
+        public Kinect KinectRaw { get { return _kinect; } }
+
         ///Tcp client listener
         private TcpListener _tcpListener;
 
         ///Listening thread
         private Thread _listenThread;
 
-        ///Broadcast thread
-        private Thread _broadcastThread;
-
         ///Kinect controller
         private Kinect _kinect;
-
-        ///Broadcast stream (NetworkStream) lookup table.  Names stored by IPaddress/port string.
-        public Dictionary<string, NetworkStream> BroadcastStreams = new Dictionary<string, NetworkStream>();
 
         ///Kinect sampling rate in milliseconds
         public int KinectSamplingRate {get; set;}
@@ -69,9 +57,6 @@ namespace KinectDaemon
             this._tcpListener = new TcpListener(IPAddress.Any, 3000);
             this._listenThread = new Thread(new ThreadStart(ListenForClients));
             this._listenThread.Start();
-            //
-            //this._broadcastThread = new Thread(new ThreadStart(Broadcast));
-           // this._broadcastThread.Start();
         }
 
         ///Trigger shutdown
@@ -82,33 +67,6 @@ namespace KinectDaemon
 
            // _broadcastThread.Join();
             _listenThread.Join();
-        }
-
-        ///Add client and network stream to broadcast lookup table
-        private void AddBroadcastClient(TcpClient client)
-        {
-            lock (BroadcastStreams)
-            {
-                NetworkStream clientStream = client.GetStream();
-                BroadcastStreams.Add(client.Client.RemoteEndPoint.ToString(), clientStream);
-                Console.WriteLine("Client " + client.Client.RemoteEndPoint.ToString() + " connected, added to broadcast queue");
-            }
-        }
-
-        ///Remove client and network stream from broadcast lookup table
-        private void RemoveBroadcastClient(TcpClient client)
-        {
-            RemoveBroadcastClient(client.Client.RemoteEndPoint.ToString());
-        }
-
-        ///Remove client and network stream from broadcast lookup table
-        private void RemoveBroadcastClient(string key)
-        {
-            lock (BroadcastStreams)
-            {
-                Console.WriteLine("Client removed from broadcast queue: " + key);
-                BroadcastStreams.Remove(key);
-            }
         }
 
         private void SendPacketTo(NetworkStream clientStream)
@@ -133,49 +91,7 @@ namespace KinectDaemon
             {
             }
         }
-        ///Broadcast thread (deprecated, clients must now request data).
-        private void Broadcast()
-        {
-            while (!_isShuttingDown)
-            {
-
-                KinectPacket packet = new KinectPacket();
-                lock (_kinect.Joints)   ///Kinect code can drop joints from array so make sure to lock
-                {
-                    foreach (KeyValuePair<string, KinectPoint> kvp in _kinect.Joints)
-                    {
-                        //Console.WriteLine(kvp.Key + " " + kvp.Value.ToString());
-                        packet.Messages.Add(kvp.Key, kvp.Value);
-                    }
-                }
-                byte[] data = SerializationUtils.SerializeToByteArray(packet);
-                string droppedClient = null;
-
-                lock (BroadcastStreams)     //BroadcastStreams can be modified in several places, make sure to lock
-                {
-                    foreach (KeyValuePair<string, NetworkStream> kvp in BroadcastStreams)
-                    {
-                        try
-                        {
-                            NetworkStream stream = kvp.Value;
-                            stream.Write(data, 0, data.Length);
-                            stream.Flush();
-                        }
-                        catch
-                        {
-                            droppedClient = kvp.Key;
-                           
-                            break;
-                        }
-                    }
-                }
-                if (droppedClient!=null)
-                {
-                    RemoveBroadcastClient(droppedClient);
-                }
-                Thread.Sleep(KinectSamplingRate);
-            }
-        }
+       
         private void ListenForClients()
         {
             this._tcpListener.Start();
@@ -191,8 +107,6 @@ namespace KinectDaemon
                     //with connected client
                     Thread clientThread = new Thread(new ParameterizedThreadStart(HandleClientComm));
                     clientThread.Start(client);
-
-                    AddBroadcastClient(client);
                 }
             }
             catch
@@ -220,7 +134,6 @@ namespace KinectDaemon
                 catch
                 {
                     Console.WriteLine("Client Disconnected Poorly: " + tcpClient.Client.RemoteEndPoint.ToString());
-                    RemoveBroadcastClient(tcpClient);
                     break;
                 }
 
@@ -228,7 +141,6 @@ namespace KinectDaemon
                 {
                     //the client has disconnected from the server
                     Console.WriteLine("Client Disconnected Cleanly: " + tcpClient.Client.RemoteEndPoint.ToString());
-                    RemoveBroadcastClient(tcpClient);
                     break;
                 }
                 SendPacketTo(clientStream);

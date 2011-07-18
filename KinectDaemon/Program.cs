@@ -41,6 +41,7 @@ namespace KinectDaemon
 {
     class Program
     {
+       ///Usage and exit
        static void Uae()
         {
             Console.WriteLine("KinectDaemon <s|c> [flags]");
@@ -114,6 +115,38 @@ namespace KinectDaemon
                 cki = Console.ReadKey();
             } while (cki.Key != ConsoleKey.Q);
         }
+
+        /// <summary>
+        /// Process keyboard input when server is running
+        /// </summary>
+        static void ProcessServerKeys(Server server,ConsoleKeyInfo cki)
+        {
+            switch (cki.Key)
+            {
+                case ConsoleKey.R:
+                    if (server.KinectRaw.Record.IsRecording)
+                    {
+                        server.KinectRaw.Record.StopRecording();
+                        Console.WriteLine("Stop recording");
+                    }
+                    else
+                    {
+                        server.KinectRaw.Record.StartRecording();
+                        Console.WriteLine("Start recording");
+                    }
+                    break;
+                case ConsoleKey.H:
+                    Console.Clear();
+                    Console.WriteLine("Help\n----");
+                    Console.WriteLine("Q - Stop server.");
+                    Console.WriteLine("R - Start/Stop Recording");
+                    break;
+                default:
+                    Console.WriteLine("You pressed: " + cki.Key.ToString());
+                    break;
+
+            }
+        }
         static void Main(string[] args)
         {
            
@@ -121,6 +154,7 @@ namespace KinectDaemon
             Console.WriteLine("Args[0]: " + args[0]);
             switch (args[0][0])
             {
+                //Run server
                 case 's':
                 case 'S':
                     {
@@ -130,12 +164,12 @@ namespace KinectDaemon
                         do
                         {
                             cki = Console.ReadKey();
-                            Console.WriteLine("You pressed: " + cki.Key.ToString());
-
+                            ProcessServerKeys(server,cki);
                         } while (cki.Key != ConsoleKey.Q);
                         server.ShutDown();
                     }
                     break;
+                //Run client
                 case 'c':
                 case 'C':
                     {
@@ -163,9 +197,6 @@ namespace KinectDaemon
                         break;
                     }
                }
-        }
-        private static void HandleServerComm()
-        {
         }
     }
 }
