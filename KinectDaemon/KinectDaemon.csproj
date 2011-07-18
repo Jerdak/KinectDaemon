@@ -52,6 +52,7 @@
     <Compile Include="Kinect.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Recorder.cs" />
     <Compile Include="SerializationUtils.cs" />
     <Compile Include="Server.cs" />
   </ItemGroup>
