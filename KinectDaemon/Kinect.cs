@@ -112,7 +112,7 @@ namespace KinectDaemon
 
         }
       
-        public void Start()
+        public bool Start()
         {
             _nuiRunTime = new Runtime();
 
@@ -123,7 +123,7 @@ namespace KinectDaemon
             catch (InvalidOperationException)
             {
                 Console.WriteLine("Runtime initialization failed. Please make sure Kinect device is plugged in.");
-                return;
+                return false;
             }
 
 
@@ -135,7 +135,7 @@ namespace KinectDaemon
             catch (InvalidOperationException)
             {
                 Console.WriteLine("Failed to open stream. Please make sure to specify a supported image type and resolution.");
-                return;
+                return false;
             }
 
             _lastTime = DateTime.Now;
@@ -145,6 +145,8 @@ namespace KinectDaemon
             _nuiRunTime.VideoFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_ColorFrameReady);
 
             _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(Record.nui_SkeletonFrameReady);
+
+            return true;
         }
 
         // Converts a 16-bit grayscale depth frame which includes player indexes into a 32-bit frame
