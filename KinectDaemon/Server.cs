@@ -32,7 +32,11 @@ namespace KinectDaemon
     /// <related_source>http://www.seethroughskin.com/blog/?p=1159</related_source>
     class Server
     {
+        ///Through pointer to Kinect class
         public Kinect KinectRaw { get { return _kinect; } }
+
+        /// :)
+        public bool IsKinectKinected { get; set; }
 
         ///Tcp client listener
         private TcpListener _tcpListener;
@@ -47,12 +51,19 @@ namespace KinectDaemon
         public int KinectSamplingRate {get; set;}
 
         ///Shutdown flag
-        private bool _isShuttingDown = false;
+        public bool IsShuttingDown = false;
 
         public Server()
         {
             _kinect = new Kinect();
-            _kinect.Start();
+
+            //force kinect to be attached when starting the server or else don't bother spawning worker thread.
+            if (!_kinect.Start())
+            {
+                IsKinectKinected = false;
+                return;
+            }
+            IsKinectKinected = true;
 
             this._tcpListener = new TcpListener(IPAddress.Any, 3000);
             this._listenThread = new Thread(new ThreadStart(ListenForClients));
@@ -63,7 +74,7 @@ namespace KinectDaemon
         public void ShutDown()
         {
             _tcpListener.Stop();
-            _isShuttingDown = true;
+            IsShuttingDown = true;
 
            // _broadcastThread.Join();
             _listenThread.Join();
@@ -71,6 +82,8 @@ namespace KinectDaemon
 
         private void SendPacketTo(NetworkStream clientStream)
         {
+            if (IsShuttingDown) return;
+
             KinectPacket packet = new KinectPacket();
             lock (_kinect.Joints)   ///Kinect code can drop joints from array so make sure to lock
             {
@@ -89,6 +102,7 @@ namespace KinectDaemon
             }
             catch
             {
+                //Do nothing
             }
         }
        
@@ -98,7 +112,7 @@ namespace KinectDaemon
 
             try
             {
-                while (!_isShuttingDown)
+                while (!IsShuttingDown)
                 {
                     //blocks until a client has connected to the server
                     TcpClient client = this._tcpListener.AcceptTcpClient();
@@ -122,7 +136,7 @@ namespace KinectDaemon
             byte[] message = new byte[4096];
             int bytesRead;
 
-            while (!_isShuttingDown)
+            while (!IsShuttingDown)
             {
                 bytesRead = 0;
 
@@ -133,6 +147,7 @@ namespace KinectDaemon
                 }
                 catch
                 {
+                    //client dropped from server w/o properly closing its connection
                     Console.WriteLine("Client Disconnected Poorly: " + tcpClient.Client.RemoteEndPoint.ToString());
                     break;
                 }
