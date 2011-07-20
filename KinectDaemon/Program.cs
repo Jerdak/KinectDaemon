@@ -147,6 +147,32 @@ namespace KinectDaemon
 
             }
         }
+        static void ProcessClientKeys(Client client, ConsoleKeyInfo cki)
+        {
+            switch (cki.Key)
+            {
+                case ConsoleKey.I:
+                    Console.WriteLine("Enter Server IP Address:");
+                    string strIP = Console.ReadLine();
+                    client.Disconnect();
+                    client.IpAddr = strIP;
+                    client.Connect();
+                    break;
+                case ConsoleKey.J:
+                    client.SendMessageToServer("asd");
+                    break;
+                case ConsoleKey.H:
+                    Console.Clear();
+                    Console.WriteLine("Help\n----");
+                    Console.WriteLine("I - Change server IP.");
+                    Console.WriteLine("J - Request Joint data.");
+                    break;
+                default:
+                    Console.WriteLine("You pressed: " + cki.Key.ToString());
+                    break;
+
+            }
+        }
         static void Main(string[] args)
         {
            
@@ -159,6 +185,11 @@ namespace KinectDaemon
                 case 'S':
                     {
                         Server server = new Server();
+                        if (!server.IsKinectKinected)
+                        {
+                            Console.WriteLine("Kinect must be attached for the server to run, returning.");
+                            return;
+                        }
                         ConsoleKeyInfo cki;
                         Console.WriteLine("Daemon running on port 3000, press 'Q' to quit");
                         do
@@ -175,16 +206,16 @@ namespace KinectDaemon
                     {
                         try
                         {
+                            ConsoleKeyInfo cki;
                             Client client = new Client();
                             client.Connect();
+                            
                             do
                             {
-                                Console.Write("Send message: ");
-                                string buffer = Console.ReadLine();
-                                if (buffer.CompareTo("q") == 0) break;
-                                client.SendMessageToServer(buffer);
-                            } while (true);
-
+                                cki = Console.ReadKey();
+                                ProcessClientKeys(client, cki);
+                            } while (cki.Key != ConsoleKey.Q);
+                       
                             client.Disconnect();
            
                         }
