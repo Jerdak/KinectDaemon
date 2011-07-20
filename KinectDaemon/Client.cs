@@ -34,28 +34,54 @@ namespace KinectDaemon
     {
         public int Port { get; set; }
         public string IpAddr { get; set; }
+        public bool IsConnected { get; set; }
+        public bool IsShuttingDown { get; set; }
 
         private TcpClient _tcpClient = new TcpClient();
         private NetworkStream _clientStream = null;
         private Thread _listenThread;
-        private bool _isShuttingDown = false;
-
+        
+ 
         public Client(){
             IpAddr = "127.0.0.1";
             Port = 3000;
+
+            IsConnected = false;
+            IsShuttingDown = false;
         }
-        public void Connect(){
-            _isShuttingDown = false;
+        public bool Connect(){
+            if(IsConnected || IsShuttingDown){
+                Console.WriteLine("Cannot connect to a new server, client is still attached.");
+                return false;
+            }
+            IsShuttingDown = false;
 
-            IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(IpAddr), Port);
-            _tcpClient.Connect(serverEndPoint);
-            _clientStream = _tcpClient.GetStream();
+            Console.Write("Attempting to kinect to " + IpAddr + "...");
+            try
+            {
+                IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(IpAddr), Port);
+                _tcpClient.Connect(serverEndPoint);
+                _clientStream = _tcpClient.GetStream();
 
-            _listenThread = new Thread(new ThreadStart(ListenForServer));
-            _listenThread.Start();
+                _listenThread = new Thread(new ThreadStart(ListenForServer));
+                _listenThread.Start();
+
+                IsConnected = true;
+                Console.WriteLine("Connected");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                IsShuttingDown = false;
+                IsConnected = false; 
+                Console.WriteLine("Failed.  " + ex.Message);
+            }
+            return false;
         }
         public void SendMessageToServer(string msg)
         {
+            if (!IsConnected) return;
+
             ASCIIEncoding encoder = new ASCIIEncoding();
             byte[] bbuffer = encoder.GetBytes(msg);
 
@@ -64,13 +90,17 @@ namespace KinectDaemon
         }
         public void Disconnect()
         {
-            _isShuttingDown = true;
+            if (!IsConnected) return;
+            IsShuttingDown = true;
+
             _tcpClient.Close();
             _listenThread.Join();
+
+            IsConnected = false;
         }
         public void ListenForServer()
         {
-            while (!_isShuttingDown)
+            while (!IsShuttingDown)
             {
                
                 while (_clientStream.DataAvailable)
