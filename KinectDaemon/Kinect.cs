@@ -77,7 +77,7 @@ namespace KinectDaemon
         const int GREEN_IDX = 1;
         const int BLUE_IDX = 0;
         byte[] depthFrame32 = new byte[320 * 240 * 4];
-
+        int[] depthFrame = new int[320 * 240];
 
         public Kinect()
         {
@@ -90,6 +90,13 @@ namespace KinectDaemon
             Record.StopRecording();
         }
 
+        ///Public access to actual Kinect runtime.
+        public Runtime KinectRuntime { get { return _nuiRunTime; } }
+
+        public Int32[] DepthFrame
+        {
+            get { return depthFrame; }
+        }
         public bool IsTrackingSkeleton
         {
             get
@@ -144,8 +151,7 @@ namespace KinectDaemon
             _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             _nuiRunTime.VideoFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_ColorFrameReady);
 
-            _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(Record.nui_SkeletonFrameReady);
-
+            _nuiRunTime.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(Record.nui_SkeletonFrameReady);         
             return true;
         }
 
@@ -161,6 +167,7 @@ namespace KinectDaemon
                 // for display (we disregard information in most significant bit)
                 byte intensity = (byte)(255 - (255 * realDepth / 0x0fff));
 
+                depthFrame[i32/4] = realDepth;
                 depthFrame32[i32 + RED_IDX] = 0;
                 depthFrame32[i32 + GREEN_IDX] = 0;
                 depthFrame32[i32 + BLUE_IDX] = 0;
@@ -211,22 +218,8 @@ namespace KinectDaemon
 
         void nui_DepthFrameReady(object sender, ImageFrameReadyEventArgs e)
         {
-            /*PlanarImage Image = e.ImageFrame.Image;
+            PlanarImage Image = e.ImageFrame.Image;
             byte[] convertedDepthFrame = convertDepthFrame(Image.Bits);
-
-            depth.Source = BitmapSource.Create(
-                Image.Width, Image.Height, 96, 96, PixelFormats.Bgr32, null, convertedDepthFrame, Image.Width * 4);
-
-            ++_totalFrames;
-
-            DateTime cur = DateTime.Now;
-            if (cur.Subtract(_lastTime) > TimeSpan.FromSeconds(1))
-            {
-                int frameDiff = _totalFrames - _lastFrames;
-                _lastFrames = _totalFrames;
-                _lastTime = cur;
-                frameRate.Text = frameDiff.ToString() + " fps";
-            }*/
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
