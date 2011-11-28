@@ -37,6 +37,9 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading;
 using System.Net;
+using System.Windows.Forms;
+using Microsoft.Research.Kinect.Nui;
+
 namespace KinectDaemon
 {
     class Program
@@ -173,10 +176,23 @@ namespace KinectDaemon
 
             }
         }
+        static void WindowMain()
+        {
+            Application.EnableVisualStyles();
+            Application.Run(new UserInterface.UIMainWindow());
+            Environment.Exit(1);
+        }
+        [STAThread]
         static void Main(string[] args)
         {
-           
+          
             if (args.Length < 1) Uae();
+
+            /// REMOVE ME TO RUN ORIGINAL CLI ///
+            //WindowMain();
+            /// END OF REMOVE_ME ////
+            
+
             Console.WriteLine("Args[0]: " + args[0]);
             switch (args[0][0])
             {
@@ -195,7 +211,7 @@ namespace KinectDaemon
                         do
                         {
                             cki = Console.ReadKey();
-                            ProcessServerKeys(server,cki);
+                            ProcessServerKeys(server, cki);
                         } while (cki.Key != ConsoleKey.Q);
                         server.ShutDown();
                     }
@@ -209,25 +225,28 @@ namespace KinectDaemon
                             ConsoleKeyInfo cki;
                             Client client = new Client();
                             client.Connect();
-                            
+
                             do
                             {
                                 cki = Console.ReadKey();
                                 ProcessClientKeys(client, cki);
                             } while (cki.Key != ConsoleKey.Q);
-                       
+
                             client.Disconnect();
-           
+
                         }
                         catch (SystemException ex)
                         {
                             Console.WriteLine("No connection could be established: " + ex.Message);
-                           
+
 
                         }
                         break;
                     }
-               }
+                default:
+                    Uae();
+                    break;
+            }
         }
     }
 }
