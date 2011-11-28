@@ -28,5 +28,23 @@ namespace KinectDaemon.UserInterface
             }
         }
 
+        private void btDumpDepth_Click(object sender, EventArgs e)
+        {
+            uiDepthViewer.DumpData();
+        }
+
+        private void DumpWait(object param)
+        {
+            int wait = (int)param;
+            System.Threading.Thread.Sleep(wait);
+            uiDepthViewer.DumpData();
+        }
+        private void btDump5_Click(object sender, EventArgs e)
+        {
+            System.Threading.Thread wtThread = new System.Threading.Thread(new System.Threading.ParameterizedThreadStart(DumpWait));
+            wtThread.SetApartmentState(System.Threading.ApartmentState.STA);
+            wtThread.Start(5000);
+        }
+
     }
 }
