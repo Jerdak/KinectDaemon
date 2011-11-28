@@ -20,6 +20,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Net;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 namespace KinectDaemon
 {
@@ -52,11 +53,11 @@ namespace KinectDaemon
 
         ///Shutdown flag
         public bool IsShuttingDown = false;
-
+        
         public Server()
         {
             _kinect = new Kinect();
-
+          
             //force kinect to be attached when starting the server or else don't bother spawning worker thread.
             if (!_kinect.Start())
             {
