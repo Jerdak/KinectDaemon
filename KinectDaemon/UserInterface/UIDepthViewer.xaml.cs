@@ -34,6 +34,8 @@ namespace KinectDaemon.UserInterface
         const int GREEN_IDX = 1;
         const int BLUE_IDX = 0;
 
+        List<Microsoft.Research.Kinect.Nui.Vector> points;
+
         public UIDepthViewer()
         {
             InitializeComponent();
@@ -55,70 +57,81 @@ namespace KinectDaemon.UserInterface
         // that displays different players in different colors
         byte[] convertDepthFrame(ImageFrame Image)
         {
-            byte[] depthFrame16 = Image.Image.Bits;
-            for (int i16 = 0, i32 = 0; i16 < depthFrame16.Length && i32 < depthFrame32.Length; i16 += 2, i32 += 4)
+            var width = Image.Image.Width;
+            var height = Image.Image.Height;
+            var greyIndex = 0;
+
+            points = new List<Microsoft.Research.Kinect.Nui.Vector>();
+            int i32 = 0;
+            int i16 = 0;
+            int realDepth = 0;
+            for (var y = 0; y < height; y++)
             {
-                int player = depthFrame16[i16] & 0x07;
-                int realDepth = (depthFrame16[i16 + 1] << 5) | (depthFrame16[i16] >> 3);
-                // transform 13-bit depth information into an 8-bit intensity appropriate
-                // for display (we disregard information in most significant bit)
-                byte intensity = (byte)(255 - (255 * realDepth / 0x0fff));
-
-                switch (Image.Type)
+                for (var x = 0; x < width; x++)
                 {
-                    case ImageType.DepthAndPlayerIndex:
-                        depthPixels[i16 / 2] = (depthFrame16[i16 + 1] << 5) | (depthFrame16[i16] >> 3);
-                        break;
-                    case ImageType.Depth:
-                        //Mirror depth
-                        depthPixels[i16 / 2] = (depthFrame16[i16 + 1] << 8) | depthFrame16[i16];
-                        break;
-                }
-               
-                depthFrame32[i32 + RED_IDX] = 0;
-                depthFrame32[i32 + GREEN_IDX] = 0;
-                depthFrame32[i32 + BLUE_IDX] = 0;
+                    int player = Image.Image.Bits[i16] & 0x07;
+                    depthFrame32[i32 + RED_IDX] = 0;
+                    depthFrame32[i32 + GREEN_IDX] = 0;
+                    depthFrame32[i32 + BLUE_IDX] = 0;
+                    
+                    switch (Image.Type)
+                    {
+                        case ImageType.DepthAndPlayerIndex:
+                            realDepth = (((Image.Image.Bits[greyIndex] >> 3) | (Image.Image.Bits[greyIndex + 1] << 5)) << 3);
+                            points.Add(_kinectRuntime.SkeletonEngine.DepthImageToSkeleton(((float)x / Image.Image.Width), ((float)y / Image.Image.Height), (short)realDepth));
+                            
+                            break;
+                        case ImageType.Depth: // depth comes back mirrored
+                            realDepth = (((Image.Image.Bits[greyIndex] | Image.Image.Bits[greyIndex + 1] << 8)) << 3);
+                            points.Add(_kinectRuntime.SkeletonEngine.DepthImageToSkeleton(((float)(width - x - 1) / Image.Image.Width), ((float)y / Image.Image.Height), (short)realDepth));
+                            break;
+                    }
 
-               
-                // choose different display colors based on player
-                switch (player)
-                {
-                    case 0:
-                        depthFrame32[i32 + RED_IDX] = (byte)(intensity / 2);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 2);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(intensity / 2);
-                        break;
-                    case 1:
-                        depthFrame32[i32 + RED_IDX] = intensity;
-                        break;
-                    case 2:
-                        depthFrame32[i32 + GREEN_IDX] = intensity;
-                        break;
-                    case 3:
-                        depthFrame32[i32 + RED_IDX] = (byte)(intensity / 4);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(intensity);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
-                        break;
-                    case 4:
-                        depthFrame32[i32 + RED_IDX] = (byte)(intensity);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(intensity);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(intensity / 4);
-                        break;
-                    case 5:
-                        depthFrame32[i32 + RED_IDX] = (byte)(intensity);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 4);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
-                        break;
-                    case 6:
-                        depthFrame32[i32 + RED_IDX] = (byte)(intensity / 2);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 2);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
-                        break;
-                    case 7:
-                        depthFrame32[i32 + RED_IDX] = (byte)(255 - intensity);
-                        depthFrame32[i32 + GREEN_IDX] = (byte)(255 - intensity);
-                        depthFrame32[i32 + BLUE_IDX] = (byte)(255 - intensity);
-                        break;
+                    byte intensity = (byte)(255 - (255 * realDepth / 0x0fff));
+                    // choose different display colors based on player
+                    switch (player)
+                    {
+                        case 0:
+                            depthFrame32[i32 + RED_IDX] = (byte)(intensity / 2);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 2);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(intensity / 2);
+                            break;
+                        case 1:
+                            depthFrame32[i32 + RED_IDX] = intensity;
+                            break;
+                        case 2:
+                            depthFrame32[i32 + GREEN_IDX] = intensity;
+                            break;
+                        case 3:
+                            depthFrame32[i32 + RED_IDX] = (byte)(intensity / 4);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(intensity);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
+                            break;
+                        case 4:
+                            depthFrame32[i32 + RED_IDX] = (byte)(intensity);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(intensity);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(intensity / 4);
+                            break;
+                        case 5:
+                            depthFrame32[i32 + RED_IDX] = (byte)(intensity);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 4);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
+                            break;
+                        case 6:
+                            depthFrame32[i32 + RED_IDX] = (byte)(intensity / 2);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(intensity / 2);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(intensity);
+                            break;
+                        case 7:
+                            depthFrame32[i32 + RED_IDX] = (byte)(255 - intensity);
+                            depthFrame32[i32 + GREEN_IDX] = (byte)(255 - intensity);
+                            depthFrame32[i32 + BLUE_IDX] = (byte)(255 - intensity);
+                            break;
+                    }
+
+                    i32 += 4;
+                    i16 += 2;
+                    greyIndex += 2;
                 }
             }
             return depthFrame32;
@@ -126,6 +139,7 @@ namespace KinectDaemon.UserInterface
         List<Microsoft.Research.Kinect.Nui.Vector> convertRealDepth()
         {
             List<Microsoft.Research.Kinect.Nui.Vector> ret = new List<Microsoft.Research.Kinect.Nui.Vector>();
+            Console.WriteLine("Pts: {0}", depthPixels.Length);
             for (int i = 0; i < depthPixels.Length; i+=2)
             {
                 int depthPixel = depthPixels[i/2];
@@ -188,10 +202,11 @@ namespace KinectDaemon.UserInterface
                 file = new FileInfo(root.FullName + "/" + "dump_" + ct.ToString() + ".obj");
                 ct++;
             }
-
+            Console.WriteLine("Mesh Saved: {0}",file.FullName);
+            List<Microsoft.Research.Kinect.Nui.Vector> tmp = new List<Microsoft.Research.Kinect.Nui.Vector>(points);
             using (StreamWriter sw = new StreamWriter(file.FullName))
             {
-                foreach (Microsoft.Research.Kinect.Nui.Vector v in verts)
+                foreach (Microsoft.Research.Kinect.Nui.Vector v in tmp)
                 {
                     sw.WriteLine("v " + v.X.ToString() + " " + v.Y.ToString() + " " + v.Z.ToString());
                 }

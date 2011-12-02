@@ -189,7 +189,7 @@ namespace KinectDaemon
             if (args.Length < 1) Uae();
 
             /// REMOVE ME TO RUN ORIGINAL CLI ///
-            //WindowMain();
+            WindowMain();
             /// END OF REMOVE_ME ////
             
 
